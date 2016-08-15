@@ -15,23 +15,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 package tiger;
 
-import com.google.android.apps.docs.tools.dagger.componentfactory.MembersInjector;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
-
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
-
 import dagger.Module;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;

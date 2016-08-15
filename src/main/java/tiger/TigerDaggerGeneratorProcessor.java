@@ -15,7 +15,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 package tiger;
 
-import com.google.android.apps.docs.tools.dagger.componentfactory.MembersInjector;
 import com.google.auto.service.AutoService;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -25,15 +24,12 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-
 import dagger.Component;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,7 +38,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.annotation.Nullable;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Messager;

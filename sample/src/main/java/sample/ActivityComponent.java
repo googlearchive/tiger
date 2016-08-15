@@ -15,7 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package sample;
 
-import com.google.android.apps.docs.tools.dagger.componentfactory.MembersInjector;
+import tiger.MembersInjector;
 import dagger.Component;
 
 @ActivityScoped

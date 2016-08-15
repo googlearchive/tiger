@@ -13,7 +13,7 @@
 // limitations under the License.
 //
 ////////////////////////////////////////////////////////////////////////////////
-package com.google.android.apps.docs.tools.dagger.componentfactory;
+package tiger;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
