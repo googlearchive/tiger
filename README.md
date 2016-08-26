@@ -1,29 +1,29 @@
 **DISCLAIMER:** This is not an official Google product.  Google's production dependency injection frameworks are [Dagger](https://github.com/google/dagger) and [Guice](https://github.com/google/guice).
 
-# Tiger - the fastest java dependency injection framework
+# Tiger - The fastest java dependency injection framework
 
 ## Acknowledge
 Tiger is highly inspired by Dagger, Kudos to those great guys.
 
 ## Challenge
-If one found a DI framework faster, let me know. I will drop the title as long as it is proved.
+If you find a faster DI framework, let me know. I will drop the title as long as it is proved.
 
 ## Why Tiger?
 It is the fastest! Not faster, but the fastest! I have tried it on a big project with ~200 modules. While it takes hundreds of milliseconds to instantiate dagger components, on the same hardware, it only takes a few milliseconds to instantiate Tiger injectors.
 Minimal amount of code to write therefore easy to maintain, if you need to maintain it at all. You don't need to write components like in Dagger. You don't need to split a module into several modules one for each scope that used by bindings provided by the module. You will feel it is some easy to change the scope of a binding. Just change it. Way to go, isn’t it?
 
 ## Build up your knowledge
-If you are here, you must already be familiar with DI(Dependency Injection) and its advantage. Otherwise wiki will be your friend.
-DI has been evolving for long time in the different form. But the concept is not really changed much. This document will not repeat these concepts. If you find some concept not explained, google it. Also Guice probably has explained those concept very well.
+If you are here, you must already be familiar with DI(Dependency Injection) and its advantages. Otherwise wiki will be your friend.
+DI has been evolving for long time in the different form. But the concept has not really changed much. This document will not repeat these concepts. If you find some concept not explained, google it. Also Guice probably has explained those concept very well.
 
 ## Integration
 Tiger is an annotation process. Therefore just build the jar and use it the way that annotation processors are supposed to be used. All environment should work. The sample uses gradle.
 
 ## How?
-Before diving into details, it will be helpful, very helpful, to understand the intended usage of tiger. Tiger is designed to let machine to as much as possible and let human do as little as possible. It requires minimal information from the developer. From these information, scoped injectors are generated. Application can instances these injectors and use them to inject classes. To achieve this, tiger has distilled the information needed to generate injectors. Here are they, with related annotation.
+Before diving into details, it will be helpful, very helpful, to understand the intended usage of tiger. Tiger is designed to let the machine do as much as possible and let human do as little as possible. It requires minimal information from the developer. From these information, scoped injectors are generated. Application can instances these injectors and use them to inject classes. To achieve this, tiger has distilled the information needed to generate injectors. Here are they, with related annotation.
 
 ## Scopes
-Usually application has at least one scope, singleton. Even if there is no scoped binding, it is harmless to have a singleton scope. Therefore, tiger requires there always be a scope tree. The root is usually singleton, but not necessary. Details will be shown later in the sample. Tiger generate one injector class for each scope.
+Usually application has at least one scope, singleton. Even if there is no scoped binding, it is harmless to have a singleton scope. Therefore, tiger requires there always be a scope tree. The root is usually singleton, but not necessary. Details will be shown later in the sample. Tiger generates one injector class for each scope.
 
 ### `@tiger.ScopeDependency`
 It specifies the dependencies between scopes. All the dependency information form a scope tree.
@@ -48,7 +48,7 @@ It specify the names of the injectors.
 
 ### `@tiger.GenerationTriggerAnnotation`
 This the annotation that triggers the generation processor.
-`@Module`, `@Inject` and `@MembersInjector` are naturally scattered around the code. For the others, i.e., `@ScopeDenendency`, `@PackageForGenerated`, `@ScopedComponentNames` and `@GenerationTriggerAnnotation`, we suggest to put them into a dedicated java file as the central configuration information for the app.
+`@Module`, `@Inject` and `@MembersInjector` are naturally scattered around the code. For the others, i.e., `@ScopeDependency`, `@PackageForGenerated`, `@ScopedComponentNames` and `@GenerationTriggerAnnotation`, we suggest to put them into a dedicated java file as the central configuration information for the app.
 
 Here is the depicted code the sample(with some modification)
 
@@ -66,7 +66,7 @@ public class Scopes {
 }
 ```
 
-Here is how AppicationInjector is instantiated and used.
+Here is how ApplicationInjector is instantiated and used.
 
 ``` java
 ApplicationInjector applicationInjector = new ApplicationInjector.Builder().build();
@@ -74,7 +74,7 @@ PseudoApplication application = new PseudoApplication();
 applicationInjector.injectPseudoApplication(application);
 ```
 
-Here is how AppicationInjector is instantiated and used.
+Here is how ApplicationInjector is instantiated and used.
 
 ``` java
 ActivityInjector activityInjector = new ActivityInjector.Builder()
@@ -92,4 +92,3 @@ Enjoy injection!
 
 ## Group
 fastesttiger@gmail.com
-
