@@ -1,3 +1,5 @@
+**DISCLAIMER:** This is not an official Google product.  Google's production dependency injection frameworks are [Dagger](https://github.com/google/dagger) and [Guice](https://github.com/google/guice).
+
 # Tiger - the fastest java dependency injection framework
 
 ## Acknowledge
