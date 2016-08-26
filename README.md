@@ -13,7 +13,7 @@ It is the fastest! Not faster, but the fastest! I have tried it on a big project
 Minimal amount of code to write therefore easy to maintain, if you need to maintain it at all. You don't need to write components like in Dagger. You don't need to split a module into several modules one for each scope that used by bindings provided by the module. You will feel it is some easy to change the scope of a binding. Just change it. Way to go, isn’t it?
 
 ## Build up your knowledge
-If you are here, you must already be familiar with DI(Dependency Injection) and its advantage. Otherwise wiki will be your friend.
+If you are here, you must already be familiar with DI(Dependency Injection) and its advantage. Otherwise [wiki](https://en.wikipedia.org/wiki/Dependency_injection) will be your friend.
 DI has been evolving for long time in the different form. But the concept is not really changed much. This document will not repeat these concepts. If you find some concept not explained, google it. Also Guice probably has explained those concept very well.
 
 ## Integration
@@ -92,4 +92,3 @@ Enjoy injection!
 
 ## Group
 fastesttiger@gmail.com
-
