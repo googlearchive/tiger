@@ -74,7 +74,7 @@ PseudoApplication application = new PseudoApplication();
 applicationInjector.injectPseudoApplication(application);
 ```
 
-Here is how AppicationInjector is instantiated and used.
+Here is how ActivityInjector is instantiated and used.
 
 ``` java
 ActivityInjector activityInjector = new ActivityInjector.Builder()
