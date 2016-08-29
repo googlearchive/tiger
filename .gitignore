@@ -1,8 +1,9 @@
-.gradle
-.idea
-build/**
-!build.gradle
-gradlew*
-gradle/**
-local.properties
 *iml
+.idea
+
+.gradle
+/build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+local.properties
