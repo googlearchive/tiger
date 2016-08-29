@@ -1,0 +1,4 @@
+Step 1: gradle build in the parent directory to generate tigar.jar
+Step 2: in sample dir, link -s ../../build/libs/tiger.jar libs/tiger.jar Copying also works but you need to copy every time when tigar.jar is changed. On windows, you need to do the similar operation.
+Step 3: in sample dir, gradle run
+
