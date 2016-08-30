@@ -378,7 +378,7 @@ class NewDependencyCollector {
           || newInfo.getType().equals(Provides.Type.UNIQUE)) {
         String error =
             String.format(
-                "Adding dependencies failed.\n %s\nAlready existing: %s", newInfo, dependencyInfoSet);
+                "Adding dependencies failed.%n %s%nAlready existing: %s", newInfo, dependencyInfoSet);
         errors.add(error);
       }
     }

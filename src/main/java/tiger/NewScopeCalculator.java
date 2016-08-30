@@ -130,7 +130,7 @@ class NewScopeCalculator {
     if (!allScopes.keySet().containsAll(bindingsRequired)) {
       errors.add(
           String.format(
-              "Scope of required keys not calculated.\nDiff: %s\nRequired: %s\nCalculated: %s",
+              "Scope of required keys not calculated.%nDiff: %s%nRequired: %s%nCalculated: %s",
               Sets.difference(bindingsRequired, allScopes.keySet()),
               bindingsRequired,
               allScopes));
