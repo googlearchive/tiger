@@ -19,6 +19,7 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 @Module
@@ -29,8 +30,14 @@ public class ApplicationModule {
   Foo provideFoo() {
     return new Foo();
   }
-  
-  
+
+  @Provides
+  @Singleton
+  @Named("xxx")
+  Foo provideNamedFoo() {
+    return new Foo();
+  }
+
   @Provides
   @IntoSet
   Kablam provideKablamSet() {

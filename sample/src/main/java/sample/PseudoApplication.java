@@ -16,16 +16,21 @@
 package sample;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 public class PseudoApplication {
   @Inject
   Foo foo;
 
   @Inject
+  @Named("xxx")
+  Foo namedFoo;
+
+  @Inject
   Baz baz;
 
   @Override
   public String toString() {
-    return "PseudoApplication[foo: " + foo + ", baz: " + baz + "]";
+    return String.format("PseudoApplication[foo: %s , named foo: %s, baz: %s", foo, namedFoo, baz);
   }
 }
