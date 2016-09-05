@@ -28,7 +28,7 @@ Usually application has at least one scope, singleton. Even if there is no scope
 ### `@tiger.ScopeDependency`
 It specifies the dependencies between scopes. All the dependency information form a scope tree.
 
-### `@tiger.Module`
+### `@dagger.Module`
 It provides binding information through @Provides annotated methods with optional scope. Now(2016/08/10)  we just reuse dagger.Module. In future, dagger.Module will be copied into tiger.Module so that tiger does not need to depend on dagger.
 
 ### `@javax.inject.Inject` on ctor
@@ -85,6 +85,9 @@ activityInjector.injectPseudoActivity(this);
 
 
 The injectors guarantee that scoped bindings will be instantiated at most once within a scope. The application needs to create related injectors for scope objects, e.g., in android, a context scoped injector for each Activity, a singleton scoped injector for the Application.
+
+## For Dagger users
+As you can see, Tiger reuse annotation from dagger like dagger.Module, dagger.Provides, etc. You can find the javadoc [here](http://google.github.io/dagger/api/2.0/). We are not going to repeat them here. Of course, Component and Subcomponent is not needed any longer. Producer related stuff is also irrelevant to injection. There is one nice feature from Tiger. You don't need to split modules according to different scopes. Yes, you can put bindings of different scopes into one module. This way you have less modules. And, if you want to change the scope of a binding, just change it, easy.
 
 ## Tip
 Inspecting the generate code will help you. If you want more, there is source code.
