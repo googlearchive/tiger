@@ -94,4 +94,4 @@ Inspecting the generate code will help you. If you want more, there is source co
 Enjoy injection!
 
 ## Group
-fastesttiger@googlegroups.com
+[fastesttiger@googlegroups.com](https://groups.google.com/forum/?hl=en#!forum/fastesttiger)
