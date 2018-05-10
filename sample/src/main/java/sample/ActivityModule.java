@@ -18,7 +18,10 @@ package sample;
 import dagger.Module;
 import dagger.Provides;
 
+import java.util.Optional;
 import javax.inject.Provider;
+import sample.ActivityComponent.Builder;
+import sample.ApplicationComponent.AppSub1Component.B;
 
 @Module
 public class ActivityModule {
@@ -28,5 +31,11 @@ public class ActivityModule {
   @ActivityScoped
   Bar provideBar(Foo foo, Provider<Baz> bazProvider) {
     return new Bar(foo, bazProvider);
+  }
+
+  @Provides
+  @ActivityScoped
+  OptYes getOptYes() {
+    return new OptYes();
   }
 }

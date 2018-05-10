@@ -23,12 +23,14 @@ import sample.Foo;
 public class Shboom {
 
     @Inject
+    // TODO: remove public
     Foo foo;
     
     private Bar bar;
     
     @Inject
-    void injectBar(@BarAnnotation Bar bar) {
+    // TODO: remove public
+    public void injectBar(@BarAnnotation Bar bar) {
       this.bar = bar; 
     }
     

@@ -19,7 +19,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-public class Baz {
+ class Baz {
   private final Foo foo;
   private final Set<Kablam> kablamSet;
   

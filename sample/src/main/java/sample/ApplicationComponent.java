@@ -15,20 +15,62 @@
 ////////////////////////////////////////////////////////////////////////////////
 package sample;
 
-import tiger.MembersInjector;
+import com.google.android.apps.docs.tools.dagger.componentfactory.MembersInjector;
+import dagger.BindsInstance;
 import dagger.Component;
 
+import dagger.Provides;
+import dagger.Subcomponent;
+import dagger.Subcomponent.Builder;
+import dagger.android.AndroidInjector;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Singleton;
 
 @Singleton
-//@Component(modules = ApplicationModule.class)
+@Component(modules = {ApplicationModule.class, AbstractApplicationModule.class})
 @MembersInjector(scope = Singleton.class)
-public interface ApplicationComponent {
+public interface ApplicationComponent extends AndroidInjector<PseudoApplication> {
   void injectPseudoApplication(PseudoApplication application);
 
   Foo provideFoo();
-  
+  FooByStatic provideFooByStatic();
+  Foo2 provideFoo2();
+  Foo3 provideFoo3();
+
   Set<Kablam> provideKabalmSet();
+
+  //Map<String, Planet> providePlanets();
+
+  // ActivityComponent.Builder getActivityComponentBuilder();
+
+  AppSub1Component.B getAppSub1ComponentBuiler();
+
+  @Component.Builder
+  abstract class MyBuilder extends AndroidInjector.Builder<PseudoApplication> {
+    abstract MyBuilder s1(ApplicationModule v);
+  }
+
+  @ActivityScoped
+  @Subcomponent(modules = Sub1Module.class)
+  interface AppSub1Component{
+    Sub1Foo provideSub1Foo();
+    void injectSub1(Sub1 sub1);
+
+    @Subcomponent.Builder
+    interface B{
+      @BindsInstance B planet(Planet p);
+      B s1(Sub1Module v);
+      AppSub1Component build();
+    }
+  }
+
+  @ActivityScoped
+  @Subcomponent(modules = Sub1Module.class)
+  interface AppSub1Component2{
+    Sub1Foo provideSub1Foo();
+  }
+
+  AppSub1Component2 getAppSub1Component2(Sub1Module sub1Module);
 }

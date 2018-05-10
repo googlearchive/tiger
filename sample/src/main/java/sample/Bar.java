@@ -15,6 +15,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 package sample;
 
+import javax.inject.Inject;
 import javax.inject.Provider;
 
 public class Bar {

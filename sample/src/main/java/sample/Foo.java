@@ -15,5 +15,18 @@
 ////////////////////////////////////////////////////////////////////////////////
 package sample;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import sample.ApplicationComponent.AppSub1Component;
+
+@Singleton
 public class Foo {
+  @Inject
+  public Foo(){}
+
+  @Inject
+  AppSub1Component.B b;
+
+  // @Inject
+  // ActivityComponent.Builder builder;
 }

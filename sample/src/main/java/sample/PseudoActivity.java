@@ -15,36 +15,61 @@
 ////////////////////////////////////////////////////////////////////////////////
 package sample;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
+import dagger.Lazy;
+import dagger.MembersInjector;
 import javax.inject.Inject;
 import sample.child.Shboom;
 
 public class PseudoActivity {
-  @Inject
-  Foo foo;
 
-  @Inject
-  @BarAnnotation
-  Bar bar;
+  @Inject @BarAnnotation Bar bar;
 
-  @Inject
-  @BarAnnotation
-  Bar bar2;
+  @Inject @BarAnnotation Bar bar2;
 
-  @Inject
-  Baz baz;
-  
-  @Inject
-  Shboom shboom;
+  @Inject Baz baz;
+
+  @Inject Shboom shboom;
+
+  @Inject Alien alien;
+
+  @Inject FooByStatic fooByStatic;
+
+  @Inject Optional<OptYes> optYes;
+
+  @Inject Optional<Lazy<OptYes>> lazyOptYes;
+
+  @Inject Optional<OptNo> optNo;
+
+  @Inject MembersInjector<Buggie> buggieInjector;
+
+  Buggie buggie = new Buggie();
 
   void onCreate(DaggerApplicationComponent applicationComponent) {
     DaggerActivityComponent activityComponent =
-        new DaggerActivityComponent.Builder().daggerApplicationComponent(applicationComponent).build();
+        (DaggerActivityComponent)
+            DaggerActivityComponent.builder()
+                .s1(applicationComponent)
+                .setAlienSource(new AlienSource("Martian"))
+                .b();
     activityComponent.injectPseudoActivity(this);
+    buggieInjector.injectMembers(buggie);
   }
 
   @Override
   public String toString() {
-    return "PseudoActivity[foo: " + foo + ", bar: " + bar + " bar2: " + bar2 + ", baz: " + baz
-        + " shboom: " + shboom + "]";
+    return MoreObjects.toStringHelper("PseudoActivity[bar: ")
+        .add("bar", bar)
+        .add(" bar2: ", bar2)
+        .add(", baz: ", baz)
+        .add(" shboom: ", shboom)
+        .add(" FooByStatic: ", fooByStatic)
+        .add(" alien: ", alien)
+        .add(" optYes: ", optYes.isPresent())
+        .add(" lazyoptYes: ", lazyOptYes.isPresent() + "/" + lazyOptYes.get().get())
+        .add(" optNo: ", optNo.isPresent())
+        .add("buggie", buggie)
+        .toString();
   }
 }
