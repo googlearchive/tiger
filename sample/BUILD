@@ -64,17 +64,21 @@ java_library(
 java_library(
     name = "sample_lib_tiger_dagger_compatible",
     srcs = glob(
-        ["**/*.java"],
+        [
+            "src/main/java/sample/**/*.java",
+            #            "java/sample/child/*.java",
+        ],
         exclude = [
             "build/**/*.java",
             "src/main/java/sample/MainExtra.java",
+            "tiger/Tail*.java",
         ],
     ),
     constraints = ["android"],
     deps = [
         #        "//experimental/users/freemanliu/tiger/src/main/java/tiger:tiger_dagger_generator_processor",
         #        "//experimental/users/freemanliu/tiger/src/main/java/tiger:tiger2_processor",
-        "//experimental/users/freemanliu/tiger/src/main/java/tiger:tiger3",
+        "//experimental/users/freemanliu/tiger/src/main/java/tiger:tiger3_for_component",
         #        "//experimental/users/freemanliu/tiger/src/main/java/tiger:proxy_processor",
         "//java/com/google/common/base:base-android",
         "//third_party/java/android_libs/guava_jdk5:base",

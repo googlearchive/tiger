@@ -210,12 +210,15 @@ public class DependencyCollector {
     if (eitherComponentToDependenciesMap.containsKey(eitherComponent)) {
       return eitherComponentToDependenciesMap.get(eitherComponent);
     }
+    boolean toDebug = eitherComponent.getSimpleName().contentEquals("ApplicationComponent");
     SetMultimap<BindingKey, DependencyInfo> result = HashMultimap.create();
     Set<TypeElement> modules = utils.findAllModulesOfComponentRecursively(eitherComponent);
+    logger.w("modules: %s", modules);
     for (TypeElement e : modules) {
-      // logger.w("module: %s", e);
+      logger.w("module: %s", e);
       Collection<DependencyInfo> dependencies = collectFromModule(e);
       addDependencyInfo(result, dependencies);
+      printMultiMap("collect: result one module ", result);
     }
 
     printMultiMap("collect: result module ", result);
@@ -250,7 +253,16 @@ public class DependencyCollector {
     printMultiMap("collect: result before ctor ", result);
 
     logger.n("requiredKeys: %s", requiredKeys);
-    completeDependenciesAndRequiredKeys(result, requiredKeys, unresolved);
+    // this only completed dependencies, the requiredKeys and unresolved are fixed below.
+    // TODO: fix it.
+    completeDependenciesAndRequiredKeys(result, requiredKeys, new HashSet<>());
+    requiredKeys = getRequiredKeys(Sets.newHashSet(eitherComponent), result);
+    for (BindingKey key : requiredKeys) {
+      if (utils.getDependencyInfo(result, key) == null) {
+        unresolved.add(key);
+      }
+    }
+
 
     // Not for base/app:application_component.
     // fixDependencies(result);
@@ -520,8 +532,9 @@ public class DependencyCollector {
         continue;
       } else if (utils.isMap(key)) {
         if (getMapContributorKeys(result.keySet(), key).isEmpty()) {
-          // TODO: this should be an error, hack for now for gmm.
-          logger.w("Binding not found for : " + key);
+          // Not found, must be from parent.
+          unresolved.add(key);
+          logger.n("Binding not found for : " + key);
         }
         continue;
       } else if (utils.isDaggerMembersInjector(typeName)) {
@@ -941,9 +954,11 @@ public class DependencyCollector {
     logger.n(TAG + ".collectFromModule: module " + module);
     Collection<DependencyInfo> result = new HashSet<>();
     for (Element e : module.getEnclosedElements()) {
+      logger.n("element: %s", e);
       if (!utils.isProvisionMethodInModule(e)) {
         continue;
       }
+      logger.n("provision method element: %s", e);
 
       ExecutableElement executableElement = (ExecutableElement) e;
       DependencyInfo dependencyInfo = getDependencyInfoForMethod(executableElement,

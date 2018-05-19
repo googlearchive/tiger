@@ -103,14 +103,14 @@ public class Main {
     // }
 
     // inject subcomponent by provision method
-    {
-      Sub1 sub1 = new Sub1();
-
-      AppSub1Component2 appSub1Component2 =
-          applicationComponent.getAppSub1Component2(new Sub1Module(sub1));
-      System.out.println("Subcomponent by factory method:");
-      System.out.println("injection sub1Foo: " + appSub1Component2.provideSub1Foo());
-    }
+    // {
+    //   Sub1 sub1 = new Sub1();
+    //
+    //   AppSub1Component2 appSub1Component2 =
+    //       applicationComponent.getAppSub1Component2(new Sub1Module(sub1));
+    //   System.out.println("Subcomponent by factory method:");
+    //   System.out.println("injection sub1Foo: " + appSub1Component2.provideSub1Foo());
+    // }
 
     // inject appsub1sub1
     // Sub1Sub1 sub1Sub1 = new Sub1Sub1();

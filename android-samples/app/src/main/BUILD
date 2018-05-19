@@ -32,7 +32,7 @@ android_library(
         ":res",
         "//experimental/users/freemanliu/tiger/sample:sample_lib_tiger_dagger_compatible",
         #        "//experimental/users/freemanliu/tiger/src/main/java/tiger:tiger_dagger_generator_processor",
-        "//experimental/users/freemanliu/tiger/src/main/java/tiger",
+        "//experimental/users/freemanliu/tiger/src/main/java/tiger:tiger3_for_component",
         "//third_party/java/android/android_sdk_linux:android_compiletime",
         "//third_party/java/android/android_sdk_linux/extras/android/compatibility/constraint_layout",
         "//third_party/java/android/android_sdk_linux/extras/android/compatibility/v4",

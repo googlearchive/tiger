@@ -75,14 +75,8 @@ public class BindingKey {
     ElementKind elementKind = element.getKind();
     Preconditions.checkArgument(
         Sets.newHashSet(
-                ElementKind.CLASS,
-                ElementKind.PARAMETER,
-                ElementKind.INTERFACE,
-                ElementKind.FIELD)
-            .contains(elementKind)
-
-        /* TODO: restore this. && (Utils.isEitherComponentBuilder(element)
-        || Utils.isEitherComponent(element))*/ ,
+                ElementKind.CLASS, ElementKind.PARAMETER, ElementKind.INTERFACE, ElementKind.FIELD)
+            .contains(elementKind),
         String.format("Unexpected element %s of Kind %s", element, elementKind));
     return get(element.asType(), Utils.getQualifier(element));
   }

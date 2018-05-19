@@ -46,15 +46,12 @@ import javax.tools.Diagnostic.Kind;
  * tiger injectors.
  */
 @AutoService(Processor.class)
-public class ProxyProcessor extends AbstractProcessor {
+public class ProxyProcessor extends TailChaserProcesssor {
   private static final String TAG = "ProxyProcessor";
   private static final String COMPONANT_ANNOTATION_ELEMENT_DEPENDENCIES = "dependencies";
   private static final String MODULE_ANNOTATION_ELEMENT_SUBCOMPONENTS = "subcomponents";
 
   private String coreInjectorPackage;
-  private Elements elements;
-  private Types types;
-  private Messager messager;
 
   private Map<TypeElement, TypeElement> componentToParentMap = new HashMap<>();
   private ScopeAliasCondenser scopeAliasCondenser;
@@ -74,8 +71,6 @@ public class ProxyProcessor extends AbstractProcessor {
 
   private List<String> allRecoverableErrors = new ArrayList<>();
 
-  private Tiger2InjectorGenerator tiger2InjectorGenerator;
-  private RoundEnvironment roundEnvironment;
   private SetMultimap<CoreInjectorInfo, TypeElement> coreInjectorToBothComponentBuilderMap =
       HashMultimap.create();
   private SetMultimap<TypeElement, TypeElement> componentToComponentDependencyMap;
@@ -93,8 +88,8 @@ public class ProxyProcessor extends AbstractProcessor {
   private Set<TypeElement> doneEitherComponents = new HashSet<>();
   private Set<TypeElement> allModules = new HashSet<>();
   private Set<Element> allInjected = new HashSet<>();
+  private boolean isFirstRound = true;
   private boolean done;
-  private Utils utils;
 
   @Override
   public synchronized void init(ProcessingEnvironment env) {
@@ -121,20 +116,18 @@ public class ProxyProcessor extends AbstractProcessor {
    * java can have multiple definition of same class in its class path.
    */
   @Override
-  public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
-    messager.printMessage(Kind.NOTE, String.format("%s: process() ", TAG));
-    this.roundEnvironment = env;
-    utils = new Utils(processingEnv, roundEnvironment);
-    // TODO: revisit this for package java/com/google/android/apps/gmm/base/views/asyncimageview
-    if (done) {
-      return false;
-    }
+  protected boolean handle(Set<? extends TypeElement> annotations) {
+    logger.n("process()");
 
-    Set<TypeElement> newModules = utils.getTypedElements(env, Module.class);
+    if (done) {
+      return true;
+    }
+    Set<TypeElement> newModules = utils.getTypedElements(roundEnvironment, Module.class);
     allModules.addAll(newModules);
-    Set<Element> newClasses = utils.getTypedElements(env, Inject.class);
-    allInjected.addAll(newClasses);
-    if (newModules.isEmpty() && newClasses.isEmpty()) {
+    Set<Element> newInjected = utils.getTypedElements(roundEnvironment, Inject.class);
+    allInjected.addAll(newInjected);
+    if (isFirstRound || !newModules.isEmpty() || !newInjected.isEmpty()) {
+      isFirstRound = false;
       return false;
     }
     // messager.printMessage(
@@ -149,21 +142,17 @@ public class ProxyProcessor extends AbstractProcessor {
                   return (TypeElement) e.getEnclosingElement();
                 }));
     // messager.printMessage(
-    //     Kind.NOTE, TAG + ".process: ctor injected classes " + classesWithInject);
+    //     Kind.NOTE, TAG + ".process: ctor injected classes " + newInjected);
 
-    done = true;
     new ProxyGenerator(processingEnv, utils).generate(allModules, classesWithInject);
 
-    return false;
+    done = true;
+
+    return true;
   }
 
   @Override
-  public Set<String> getSupportedAnnotationTypes() {
+  protected Set<String> getAnnotationTypesToChase() {
     return Sets.newHashSet(Module.class.getCanonicalName(), Inject.class.getCanonicalName());
-  }
-
-  @Override
-  public SourceVersion getSupportedSourceVersion() {
-    return SourceVersion.latestSupported();
   }
 }

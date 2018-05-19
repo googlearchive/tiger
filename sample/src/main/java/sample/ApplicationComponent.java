@@ -72,5 +72,5 @@ public interface ApplicationComponent extends AndroidInjector<PseudoApplication>
     Sub1Foo provideSub1Foo();
   }
 
-  AppSub1Component2 getAppSub1Component2(Sub1Module sub1Module);
+  // AppSub1Component2 getAppSub1Component2(Sub1Module sub1Module);
 }

@@ -109,7 +109,7 @@ class CoreInjectorGenerator {
 
   /**
    * Used for value of @Generated(). It starts with "dagger." so that it will be exempted from
-   * strict java deps check. TODO(freeman): change it to tiger.
+   * strict java deps check.
    */
   private static final String GENERATOR_NAME = "dagger.CoreInjectorGenerator";
 

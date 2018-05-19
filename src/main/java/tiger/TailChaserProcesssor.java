@@ -27,7 +27,6 @@ public abstract class TailChaserProcesssor extends AbstractProcessor{
   protected Logger logger;
   private TailChaser tailChaser;
   private int round;
-  private boolean done;
 
   @Override
   public synchronized void init(ProcessingEnvironment env) {
@@ -46,7 +45,7 @@ public abstract class TailChaserProcesssor extends AbstractProcessor{
     utils = new Utils(processingEnv, roundEnvironment);
     round++;
     logger.n(
-        ".process() round:  %d done: %s, processingOver: %s", round, done, env.processingOver());
+        ".process() round: %s, processingOver: %s", round, env.processingOver());
     // if (done) {
     //   return false;
     // }

@@ -136,6 +136,18 @@ class Utils {
   private final Elements elements;
   private final Types types;
   private final Logger logger;
+  private Ordering<Element> elementOrdering =
+      new Ordering<Element>() {
+        @Override
+        public int compare(Element left, Element right) {
+          return left.getSimpleName().toString().compareTo(right.getSimpleName().toString());
+        }
+      };
+  private boolean debugInfoEnabled;
+
+  public void setDebugInfoEnabled(boolean v) {
+    debugInfoEnabled = v;
+  }
 
   Utils(ProcessingEnvironment processingEnvironment,
       RoundEnvironment roundEnvironment) {
@@ -152,7 +164,7 @@ class Utils {
         continue;
       }
       if (e.getKind().equals(ElementKind.FIELD)) {
-        if (isNotSpecializedGeneric(TypeName.get(e.asType()))) {
+        if (isGenericNotSpecialized(TypeName.get(e.asType()))) {
           continue;
         }
         BindingKey key = BindingKey.get(e);
@@ -161,7 +173,7 @@ class Utils {
       } else {
         for (BindingKey key :
             getDependenciesFromMethod((ExecutableType) e.asType(), (ExecutableElement) e)) {
-          if (isNotSpecializedGeneric(key)) {
+          if (isGenericNotSpecialized(key)) {
             continue;
           }
           // checkKey(key, e);
@@ -627,7 +639,7 @@ class Utils {
     List<BindingKey> keys = new ArrayList<>();
     for (VariableElement variableElement : executableElement.getParameters()) {
       Preconditions.checkArgument(
-          !isNotSpecializedGeneric(TypeName.get(variableElement.asType())),
+          !isGenericNotSpecialized(TypeName.get(variableElement.asType())),
           "unspecialized method: " + executableElement);
       keys.add(BindingKey.get(variableElement.asType(), getQualifier(variableElement)));
     }
@@ -661,6 +673,17 @@ class Utils {
         Lists.asList(className.packageName(), className.simpleNames().toArray(new String[0])));
   }
 
+  public List<BindingKey> getSortedInjectedFieldKeys(TypeElement c, ProcessingEnvironment env) {
+    List<BindingKey> result = new ArrayList<>();
+    for (VariableElement field : getInjectedFields(c, env)) {
+      TypeMirror fieldType = field.asType();
+      AnnotationMirror fieldQualifier = Utils.getQualifier(field);
+      result.add(BindingKey.get(fieldType, fieldQualifier));
+    }
+
+    return sortBindingKeys(result);
+  }
+
   public List<VariableElement> getInjectedFields(
       TypeElement cls, ProcessingEnvironment env) {
     List<VariableElement> result = new ArrayList<>();
@@ -670,6 +693,14 @@ class Utils {
       }
     }
     return result;
+  }
+
+  public Ordering<Element> getElementOrdering() {
+    return elementOrdering;
+  }
+
+  public List<VariableElement> getSortedInjectedFields(TypeElement cls, ProcessingEnvironment env) {
+    return elementOrdering.immutableSortedCopy(getInjectedFields(cls, env));
   }
 
   public List<ExecutableElement> getInjectedMethods(
@@ -683,12 +714,26 @@ class Utils {
     return result;
   }
 
+  public List<ExecutableElement> getSortedInjectedMethods(
+      TypeElement cls, ProcessingEnvironment env) {
+    return elementOrdering.immutableSortedCopy(getInjectedMethods(cls, env));
+  }
+
+  public List<BindingKey> getSortedInjectedMethodKeys(TypeElement c, ProcessingEnvironment env) {
+    List<BindingKey> result = new ArrayList<>();
+    for (ExecutableElement m : getInjectedMethods(c, env)) {
+      result.add(getKeyProvidedByMethod(m));
+    }
+    return sortBindingKeys(result);
+  }
+
+
   public boolean hasInjectedFieldsOrMethods(TypeElement cls, ProcessingEnvironment env) {
     return !getInjectedFields(cls, env).isEmpty() || !getInjectedMethods(cls, env).isEmpty();
   }
 
   public boolean hasInjectedFieldsOrMethodsRecursively(TypeElement cls, ProcessingEnvironment env) {
-    if (!getInjectedFields(cls, env).isEmpty() || !getInjectedMethods(cls, env).isEmpty()) {
+    if (hasInjectedFieldsOrMethods(cls, env)) {
       return true;
     }
     if (cls.getSuperclass().getKind().equals(TypeKind.NONE)) {
@@ -1876,7 +1921,7 @@ class Utils {
 
   public TypeElement getTypeElement(TypeName typeName) {
     // logger.e("type: %s", typeName);
-    Preconditions.checkArgument(typeName instanceof ClassName, "expected type: " + typeName);
+    Preconditions.checkArgument(typeName instanceof ClassName, "unexpected type: " + typeName);
     return Preconditions.checkNotNull(
         elements.getTypeElement(getClassCanonicalName((ClassName) typeName)),
         "class not found for: %s",
@@ -1995,6 +2040,10 @@ class Utils {
     return "provide_" + getSourceCodeName(key);
   }
 
+  static public String getInjectionMethodName(BindingKey key) {
+    return "inject_" + getSourceCodeName(key);
+  }
+
   public boolean isOptional(BindingKey key) {
     return key.getTypeName() instanceof ParameterizedTypeName
         && ((ParameterizedTypeName) key.getTypeName())
@@ -2082,12 +2131,12 @@ class Utils {
 
   public boolean isKeyByGenericClass(BindingKey key) {
     Preconditions.checkArgument(!isProviderOrLazy(key) && !isOptional(key));
-    return isNotSpecializedGeneric(getClassFromKey(key).asType());
+    return isGenericNotSpecialized(getClassFromKey(key).asType());
   }
 
   // This does box for primitive types.
   public TypeMirror getTypeFromTypeName(TypeName typeName) {
-    Preconditions.checkArgument(!isNotSpecializedGeneric(typeName), "expect specialized: " + typeName);
+    Preconditions.checkArgument(!isGenericNotSpecialized(typeName), "expect specialized: " + typeName);
     // logger.n("typeName: %s", typeName);
     if (typeName.isPrimitive()) {
       typeName = typeName.box();
@@ -2339,8 +2388,11 @@ class Utils {
   }
 
   public ClassName getClassNameFromKey(BindingKey key) {
+    return getClassName(key.getTypeName());
+  }
+
+  public ClassName getClassName(TypeName typeName) {
     ClassName className;
-    TypeName typeName = key.getTypeName();
     if (typeName instanceof ClassName) {
       className = (ClassName) typeName;
     } else {
@@ -2398,14 +2450,14 @@ class Utils {
    * Returns true is the type is {@link java.lang.reflect.ParameterizedType} and has {@link
    * javax.lang.model.type.TypeVariable}.
    */
-  public boolean isNotSpecializedGeneric(TypeMirror type) {
+  public boolean isGenericNotSpecialized(TypeMirror type) {
     // logger.n("type: %s", type);
     switch (type.getKind()) {
       case TYPEVAR:
         return true;
       case DECLARED:
         for (TypeMirror i : ((DeclaredType) type).getTypeArguments()) {
-          if (isNotSpecializedGeneric(i)) {
+          if (isGenericNotSpecialized(i)) {
             return true;
           }
         }
@@ -2413,11 +2465,11 @@ class Utils {
       case WILDCARD:
         WildcardType wildcardType = (WildcardType) type;
         TypeMirror extendsBound = wildcardType.getExtendsBound();
-        if (extendsBound != null && isNotSpecializedGeneric(extendsBound)) {
+        if (extendsBound != null && isGenericNotSpecialized(extendsBound)) {
           return true;
         }
         TypeMirror superBound = wildcardType.getSuperBound();
-        if (superBound != null && isNotSpecializedGeneric(superBound)) {
+        if (superBound != null && isGenericNotSpecialized(superBound)) {
           return true;
         }
         break;
@@ -2448,20 +2500,20 @@ class Utils {
     return result;
   }
 
-  public boolean isNotSpecializedGeneric(BindingKey key) {
-    return isNotSpecializedGeneric(key.getTypeName());
+  public boolean isGenericNotSpecialized(BindingKey key) {
+    return isGenericNotSpecialized(key.getTypeName());
   }
     /**
      * Returns true is the type is {@link ParameterizedTypeName} and has {@link TypeVariableName}.
      */
-  public boolean isNotSpecializedGeneric(TypeName type) {
+  public boolean isGenericNotSpecialized(TypeName type) {
     // logger.n("typeName: %s", type);
     if (type instanceof TypeVariableName) {
       return true;
     }
     if (type instanceof ParameterizedTypeName) {
       for (TypeName i : ((ParameterizedTypeName) type).typeArguments) {
-        if (isNotSpecializedGeneric(i)) {
+        if (isGenericNotSpecialized(i)) {
           return true;
         }
       }
@@ -2469,12 +2521,12 @@ class Utils {
     if (type instanceof WildcardTypeName) {
       WildcardTypeName wildcardTypeName = (WildcardTypeName) type;
       for (TypeName i : wildcardTypeName.upperBounds) {
-        if (isNotSpecializedGeneric(i)) {
+        if (isGenericNotSpecialized(i)) {
           return true;
         }
       }
       for (TypeName i : wildcardTypeName.lowerBounds) {
-        if (isNotSpecializedGeneric(i)) {
+        if (isGenericNotSpecialized(i)) {
           return true;
         }
       }
@@ -2490,7 +2542,7 @@ class Utils {
       case TYPEVAR:
         throw new RuntimeException("non-specilized type found: " + type);
       case DECLARED:
-        if (!isPublicAndAncestor((TypeElement) ((DeclaredType) type).asElement())) {
+        if (!isSelfAndEnclosingPublic((TypeElement) ((DeclaredType) type).asElement())) {
           return false;
         }
         for (TypeMirror i : ((DeclaredType) type).getTypeArguments()) {
@@ -2571,7 +2623,7 @@ class Utils {
   /**
    * Returns whether the type and its ancestor are all public.
    */
-  public boolean isPublicAndAncestor(TypeElement typeElement) {
+  public boolean isSelfAndEnclosingPublic(TypeElement typeElement) {
     while (typeElement != null) {
       if (!typeElement.getModifiers().contains(Modifier.PUBLIC)) {
         return false;
@@ -2838,9 +2890,9 @@ class Utils {
 
   public void generateDebugInfoMethod(
       Builder injectorBuilder, String methodName, String annotationValue) {
-    // if (true) {
-    //   return;
-    // }
+    if (!debugInfoEnabled) {
+      return;
+    }
     injectorBuilder.addMethod(
         MethodSpec.methodBuilder(methodName.replace(".", "_") + "_" + System.nanoTime())
             .addAnnotation(
@@ -2863,6 +2915,14 @@ class Utils {
       builder.addAnnotation(key.getQualifier());
     }
     interfaceBuilder.addMethod(builder.build());
+  }
+
+  public boolean isPublicallyAccessible(TypeName typeName) {
+    // TODO: local types in the same package is also accessible.
+    return isPublicRecurively(typeName)
+        && (typeName.isPrimitive()
+            || typeName.isBoxedPrimitive()
+            || isSelfAndEnclosingPublic(getTypeElement(getClassName(typeName))));
   }
 
 

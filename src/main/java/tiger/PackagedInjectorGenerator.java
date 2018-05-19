@@ -147,7 +147,7 @@ public class PackagedInjectorGenerator extends GeneralInjectorGenerator {
       Set<TypeElement> ctorInjectedClasses,
       Set<TypeElement> injectedClasses,
       Utils utils, ProcessingEnvironment processingEnv, Logger logger) {
-    logger.n("element %s", element);
+    // logger.n("element %s", element);
     if (utils.isModule(element)) {
       modules.add(element);
     } else if (utils.findInjectedCtor(element) != null) {
@@ -252,7 +252,11 @@ public class PackagedInjectorGenerator extends GeneralInjectorGenerator {
   }
 
   @Override
-  protected void doSpecific() {
+  protected void preGenerateProduced(){}
+
+  @Override
+  protected void postGenerateProduced() {
+  // protected void doSpecific() {
     generateMethodsForProduced();
   }
 
@@ -260,7 +264,7 @@ public class PackagedInjectorGenerator extends GeneralInjectorGenerator {
     logger.n(packageString);
     Set<BindingKey> provided = new HashSet<>();
     for (BindingKey key : internalDependencyMap.keySet()) {
-      if (utils.isNotSpecializedGeneric(key)) {
+      if (utils.isGenericNotSpecialized(key)) {
         continue;
       }
       Set<DependencyInfo> old = dependencies.replaceValues(key, internalDependencyMap.get(key));

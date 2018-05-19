@@ -124,7 +124,7 @@ public class PackagedHubInterfaceGenerator {
     for (TypeElement cls : utils.uniteSets(ctorInjectedClasses, injectedClasses)) {
       // packaged injection's injection methods need ancestor injection method.
       TypeElement ancestor = utils.getClosestInjectedAncestor(cls);
-      if (ancestor != null && utils.isPublicAndAncestor(ancestor)) {
+      if (ancestor != null && utils.isSelfAndEnclosingPublic(ancestor)) {
         generateAbstractInjectionMethod(ancestor);
       }
     }
@@ -156,12 +156,12 @@ public class PackagedHubInterfaceGenerator {
     for (BindingKey k : hubInterfaceKeys) {
       TypeName typeName = k.getTypeName();
       // generic ones
-      if (utils.isNotSpecializedGeneric(k.getTypeName())) {
+      if (utils.isGenericNotSpecialized(k.getTypeName())) {
         toRemove.add(k);
         continue;
       }
       // local ones
-      if (!utils.isPublicRecurively(utils.getTypeFromKey(k))) {
+      if (!utils.isPublicallyAccessible(k.getTypeName())) {
         toRemove.add(k);
       }
     }

@@ -70,6 +70,27 @@ TIGER_DAGGER_DEPS = [
     "//third_party/java/flogger:android",
 ]
 
+COMMON_SRCS = [
+    "BindingKey.java",
+    "CoreInjectorInfo.java",
+    "DependencyCollector.java",
+    "DependencyInfo.java",
+    "DependencySourceType.java",
+    "DoubleCheckLazyProvider.java",
+    "GeneralInjectorGenerator.java",
+    "Logger.java",
+    "ProvisionType.java",
+    "PackagedHubInterfaceGenerator.java",
+    "PackagedInjectorGenerator.java",
+    "ResolveTypeMirrorException.java",
+    "ScopeAliasCondenser.java",
+    "ScopeSizer.java",
+    "Tail.java",
+    "TailChaser.java",
+    "TailChaserProcesssor.java",
+    "Utils.java",
+]
+
 java_library(
     name = "dependency_information_collector_processor_lib",
     srcs = glob(
@@ -87,7 +108,7 @@ java_library(
             "Tiger3ProcessorForPackaged.java",
             "Tiger3ProcessorForComponent.java",
             "HubInjectorGenerator.java",
-            "GeneralInjectorGeneratorHubClone.java",
+            "GeneralInjectorGenerator.java",
         ],
     ),
     deps = COMMON_DEPS + [
@@ -109,7 +130,7 @@ java_library(
             "Tiger3ProcessorForPackaged.java",
             "Tiger3ProcessorForComponent.java",
             "HubInjectorGenerator.java",
-            "GeneralInjectorGeneratorHubClone.java",
+            "GeneralInjectorGenerator.java",
         ],
     ),
     deps = COMMON_DEPS + [
@@ -133,7 +154,7 @@ java_library(
             "Tiger3ProcessorForPackaged.java",
             "Tiger3ProcessorForComponent.java",
             "HubInjectorGenerator.java",
-            "GeneralInjectorGeneratorHubClone.java",
+            "GeneralInjectorGenerator.java",
         ],
     ),
     #    constraints = ["android"],
@@ -156,7 +177,7 @@ java_library(
             "Tiger3ProcessorForPackaged.java",
             "Tiger3ProcessorForComponent.java",
             "HubInjectorGenerator.java",
-            "GeneralInjectorGeneratorHubClone.java",
+            "GeneralInjectorGenerator.java",
         ],
     ),
     #    constraints = ["android"],
@@ -169,18 +190,10 @@ java_library(
 
 java_library(
     name = "proxy_processor_lib",
-    srcs = glob(
-        ["**/*.java"],
-        exclude = [
-            "TigerDaggerGeneratorProcessor.java",
-            "DependencyInformationCollectorProcessor.java",
-            "ComponentGeneratorProcessor.java",
-            "Tiger2Processor.java",
-            "Tiger3ProcessorForComponent.java",
-            "HubInjectorGenerator.java",
-            "GeneralInjectorGeneratorHubClone.java",
-        ],
-    ),
+    srcs = COMMON_SRCS + [
+        "ProxyProcessor.java",
+        "ProxyGenerator.java",
+    ],
     #    constraints = ["android"],
     deps = TIGER_DAGGER_DEPS + [
         "//third_party/java/jsr250_annotations",
@@ -194,14 +207,18 @@ java_library(
     srcs = glob(
         ["**/*.java"],
         exclude = [
-            "TigerDaggerGeneratorProcessor.java",
-            "DependencyInformationCollectorProcessor.java",
             "ComponentGeneratorProcessor.java",
-            "Tiger2Processor.java",
-            "ProxyProcessor.java",
-            "Tiger3ProcessorForComponent.java",
+            "DependencyInformationCollectorProcessor.java",
+            "GeneralInjectorGenerator4.java",
             "HubInjectorGenerator.java",
-            "GeneralInjectorGeneratorHubClone.java",
+            "HubInjectorGenerator4.java",
+            "ProxyProcessor.java",
+            "Tiger2InjectorGenerator.java",
+            "Tiger2Processor.java",
+            "Tiger3ProcessorForComponent.java",
+            "Tiger4ProcessorForComponent.java",
+            "Tiger4ProcessorForPackaged.java",
+            "TigerDaggerGeneratorProcessor.java",
         ],
     ),
     #    constraints = ["android"],
@@ -229,6 +246,39 @@ java_library(
         "//third_party/java/jsr250_annotations",
         "//third_party/java_src/google_common/current/java/com/google/common/base",
         "//third_party/java_src/google_common/current/java/com/google/common/collect",
+    ],
+)
+
+java_library(
+    name = "tiger4_processor_for_component_lib",
+    srcs = glob(
+        ["**/*.java"],
+        exclude = [
+            "TigerDaggerGeneratorProcessor.java",
+            "DependencyInformationCollectorProcessor.java",
+            "ComponentGeneratorProcessor.java",
+            "Tiger2Processor.java",
+            "Tiger3Processor.java",
+            "ProxyProcessor.java",
+            "Tiger2InjectorGenerator.java",
+        ],
+    ),
+    #    constraints = ["android"],
+    deps = TIGER_DAGGER_DEPS + [
+        "//third_party/java/jsr250_annotations",
+        "//third_party/java_src/google_common/current/java/com/google/common/base",
+        "//third_party/java_src/google_common/current/java/com/google/common/collect",
+    ],
+)
+
+java_library(
+    name = "double_check_lazy_provider",
+    srcs = ["DoubleCheckLazyProvider.java"],
+    constraints = [
+        "android",
+    ],
+    deps = [
+        "//third_party/java_src/dagger/project/java/dagger:core",
     ],
 )
 
@@ -290,6 +340,15 @@ java_plugin(
     processor_class = "tiger.Tiger3ProcessorForComponent",
     deps = [
         ":tiger3_processor_for_component_lib",
+    ],
+)
+
+java_plugin(
+    name = "tiger4_processor_for_component_plugin",
+    generates_api = 1,
+    processor_class = "tiger.Tiger4ProcessorForComponent",
+    deps = [
+        ":tiger4_processor_for_component_lib",
     ],
 )
 
@@ -377,6 +436,7 @@ java_library(
     exports = [
         #            ":tiger_dagger_generator_processor_lib",
         ":annotation",
+        "//third_party/java/jsr250_annotations",
         "//third_party/java_src/dagger/project/java/dagger:core",
     ],
 )
@@ -395,18 +455,23 @@ java_library(
     exports = [
         #            ":tiger_dagger_generator_processor_lib",
         ":annotation",
+        ":double_check_lazy_provider",
         "//third_party/java_src/dagger/project/java/dagger:core",
         "//third_party/java/jsr250_annotations",
     ],
 )
 
+# This, align with "tiger", is one of the two stable api to consumers, therefore the 3 does not mean 3.
+# TODO: fix it.
 java_library(
     name = "tiger3_for_component",
     constraints = [
         "android",
     ],
     exported_plugins = [
-        ":tiger3_processor_for_component_plugin",
+        #        ":tiger3_processor_for_component_plugin",
+        ":tiger4_processor_for_component_plugin",
+        ":proxy_processor_plugin",
     ],
     tags = [
         "keep_dep",
@@ -414,6 +479,28 @@ java_library(
     exports = [
         #            ":tiger_dagger_generator_processor_lib",
         ":annotation",
+        ":double_check_lazy_provider",
+        "//third_party/java_src/dagger/project/java/dagger:core",
+        "//third_party/java/jsr250_annotations",
+    ],
+)
+
+java_library(
+    name = "tiger4_for_component",
+    constraints = [
+        "android",
+    ],
+    exported_plugins = [
+        ":tiger4_processor_for_component_plugin",
+        ":proxy_processor_plugin",
+    ],
+    tags = [
+        "keep_dep",
+    ],
+    exports = [
+        #            ":tiger_dagger_generator_processor_lib",
+        ":annotation",
+        ":double_check_lazy_provider",
         "//third_party/java_src/dagger/project/java/dagger:core",
         "//third_party/java/jsr250_annotations",
     ],
@@ -425,8 +512,9 @@ java_library(
         "android",
     ],
     exports = [
+        ":proxy_processor",
         #        ":tiger3",
-        ":tiger3_for_component",
+        #        ":tiger4_for_component",
     ],
 )
 

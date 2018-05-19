@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Stack;
 import javax.annotation.Generated;
 import javax.annotation.Nullable;
 import javax.annotation.processing.Messager;
@@ -102,7 +103,7 @@ import javax.tools.Diagnostic.Kind;
  *
  * <p>TODO: revisit all the asMemberOf to make sure only direct container is used.
  */
-abstract class GeneralInjectorGenerator {
+abstract class GeneralInjectorGenerator4 {
   private static final String TAG = "GeneralInjectorGenerator";
 
   /**
@@ -126,6 +127,8 @@ abstract class GeneralInjectorGenerator {
   private static final String CONTAINING_PACKAGED_INJECTOR_FIELD = "containingPackagedInjector";
   private static final String UNSCOPED_SUFFIX = "_unscoped";
 
+  private final ClassName objectClassName = ClassName.get(Object.class);
+
   // This does not include key for injected class, but does include its injected memebers.
   protected SetMultimap<BindingKey, DependencyInfo> dependencies;
   protected final Set<TypeElement> componentDependencies;
@@ -135,7 +138,8 @@ abstract class GeneralInjectorGenerator {
    * Includes multi-binding package. We use name instead of key because {@link
    * PackagedInjectorGenerator} will create local and global version for public types provided.
    */
-  protected final Set<String> generatedBindings = new HashSet<>();
+  // protected final Set<String> generatedBindings = new HashSet<>();
+  protected final Set<String> generatedBindings;
 
   // From packaged injector to spec builder.
   protected final Map<ClassName, Builder> packagedInjectorBuilders = Maps.newHashMap();
@@ -159,8 +163,9 @@ abstract class GeneralInjectorGenerator {
   protected final Set<TypeElement> modules;
   protected Set<TypeElement> nonNullaryCtorModules;
   private String initializeMethodName;
+  private boolean toDebug;
 
-  public GeneralInjectorGenerator(
+  public GeneralInjectorGenerator4(
       SetMultimap<BindingKey, DependencyInfo> dependencies,
       Set<TypeElement> modules,
       Set<TypeElement> componentDependencies,
@@ -176,6 +181,8 @@ abstract class GeneralInjectorGenerator {
     logger = new Logger(messager, Kind.WARNING);
     this.modules = modules;
     nonNullaryCtorModules = utils.getNonNullaryCtorOnes(modules);
+    // generatedBindings = new SetWrapper<>(messager);
+    generatedBindings = new HashSet<>();
     logger.n("modules: \n%s\n nonnullaryctor: \n%s\n", modules, nonNullaryCtorModules);
   }
 
@@ -215,10 +222,10 @@ abstract class GeneralInjectorGenerator {
     JavaFile javaFile = JavaFile.builder(getPackageString(), injectorBuilder.build()).build();
 
     try {
-      // logger.n(
-      //     " package:%s\n%s",
-      //     getPackageString(),
-      //     new StringBuilder().append(javaFile.toJavaFileObject().getCharContent(true)).toString());
+      logger.n(
+          " package:%s\n%s",
+          getPackageString(),
+          javaFile.toString());
       javaFile.writeTo(processingEnv.getFiler());
     } catch (IOException e) {
       logger.e(e.toString());
@@ -387,9 +394,24 @@ abstract class GeneralInjectorGenerator {
     if (dependencyInfo != null) {
       key = dependencyInfo.getDependant();
     }
+    toDebug = key.getTypeName().toString().contains("internalapi.UriUtil");
+    if (toDebug) {
+      logger.w("xxx started: %s", key);
+    }
+
     if (!generatedBindings.add(getProvisionMethodName(key))) {
+      if (toDebug) {
+        logger.w("xxx already: %s", key);
+      }
+
       return;
     }
+    if (toDebug) {
+      logger.w("xxx create: %s", key);
+      utils.generateDebugInfoMethod(injectorBuilder, "uriUtil",
+          String.format("key: %s, dI: %s", key, dependencyInfo));
+    }
+
     logger.n("dI: " + dependencyInfo);
 
     // logger.n("DependencyInfo: " +
@@ -425,6 +447,9 @@ abstract class GeneralInjectorGenerator {
         case UNIQUE:
           switch (dependencyInfo.getDependencySourceType()) {
             case MODULE:
+              if (toDebug) {
+                utils.generateDebugInfoMethod(injectorBuilder, "uriUtil", "module binding");
+              }
               generateProvisionMethodFromModuleUniqueBinding(key, suffix);
               break;
             case CTOR_INJECTED_CLASS:
@@ -484,7 +509,7 @@ abstract class GeneralInjectorGenerator {
             String.format(
                 "(sub)component: %s, Cannot resolve %s\nstack: %s\ndependencies: %s",
                 getCurrentEitherComponent(), key, utils.getStack(), dependencies));
-        logger.w(
+        logger.e(
             "(sub)component: %s, Cannot resolve %s\nstack: %s\ndependencies: %s",
             getCurrentEitherComponent(), key, utils.getStack(), dependencies);
         // throw new RuntimeException("cannot resolve " + key);
@@ -515,6 +540,7 @@ abstract class GeneralInjectorGenerator {
     DependencyInfo dependencyInfo =
         Iterables.getOnlyElement(Utils.getDependencyInfosHandlingBox(dependencies, key));
     DependencySourceType dependencySourceType = dependencyInfo.getDependencySourceType();
+    logger.w("key: %s, dI: %s", key, dependencyInfo);
 
     MethodSpec.Builder methodSpecBuilder =
         MethodSpec.methodBuilder(getProvisionMethodName(key))
@@ -625,6 +651,17 @@ abstract class GeneralInjectorGenerator {
     methodSpecBuilder.endControlFlow();
   }
 
+  protected final TypeName getAccessibleTypeName(TypeName typeName) {
+    if (utils.isPublicallyAccessible(typeName)) {
+      return typeName;
+    } else {
+      return ClassName.get(Object.class);
+    }
+  }
+  protected final TypeName getAccessibleTypeName(BindingKey key) {
+    return getAccessibleTypeName(key.getTypeName());
+  }
+
   // TODO: Refactor, so far this happens to work for provision methods from component dependencies.
   protected final void generateProvisionMethodFromModuleUniqueBinding(BindingKey key, String suffix) {
     // DependencyInfo dependencyInfo =
@@ -656,25 +693,54 @@ abstract class GeneralInjectorGenerator {
     BindingKey key = dependencyInfo.getDependant();
     TypeMirror returnType = dependencyInfo.getProvisionMethodElement().getReturnType();
     BindingKey returnKey = BindingKey.get(returnType, key.getQualifier());
+    if (methodName.isEmpty()) {
+      methodName = getProvisionMethodName(returnKey) + suffix;
+    }
+    if (toDebug) {
+      utils.generateDebugInfoMethod(injectorBuilder, "uriUtil", methodName);
+    }
     MethodSpec.Builder methodSpecBuilder =
         MethodSpec.methodBuilder(
-            !methodName.isEmpty() ? methodName : getProvisionMethodName(returnKey) + suffix);
+            methodName);
+    TypeName returnTypeName = getAccessibleTypeName(returnKey);
     methodSpecBuilder
         .addModifiers(suffix.isEmpty() ? Modifier.PUBLIC : Modifier.PRIVATE)
-        .returns(TypeName.get(returnType));
+        .returns(returnTypeName);
 
     onProvisionMethodStart(methodSpecBuilder, key);
 
     /** TODO: unitfy this with {@link #generateProvisionMethodFromClass(BindingKey, String)} */
-    methodSpecBuilder.addStatement("$T result", returnKey.getTypeName());
-    if (methodName.isEmpty()) {
-      addNewStatementToMethodSpec(methodSpecBuilder, dependencyInfo, "result");
-    } else {
-      addNewStatementToMethodSpecByModuleOrCtor(methodSpecBuilder, dependencyInfo, "result");
-    }
+    methodSpecBuilder.addStatement("$T result", returnTypeName);
+    addNewStatementToMethodSpec(methodSpecBuilder, dependencyInfo, "result");
     methodSpecBuilder.addStatement("return result");
     onProvisionMethodEnd(methodSpecBuilder, key);
     injectorBuilder.addMethod(methodSpecBuilder.build());
+  }
+
+  /**
+   * Return the non binds binding, or null if the binding is not found, which means it is from
+   * parent.
+   */
+  protected final Pair<DependencyInfo, BindingKey> handleBinds(DependencyInfo dependencyInfo) {
+    StringBuilder builder = new StringBuilder();
+    while (dependencyInfo.getDependencySourceType().equals(DependencySourceType.MODULE)
+        && utils.isBindsMethod(dependencyInfo.getProvisionMethodElement())) {
+      builder.append(dependencyInfo).append("\n");
+      BindingKey key = utils.getKeyForOnlyParameterOfMethod(
+          types,
+          (DeclaredType) dependencyInfo.getSourceClassElement().asType(),
+          dependencyInfo.getProvisionMethodElement());
+      Set<DependencyInfo> dependencyInfos =
+          utils.getDependencyInfo(
+              dependencies,
+              key);
+      if (dependencyInfos == null) {
+        logger.w(builder.toString());
+        return Pair.of(null, key);
+      }
+      dependencyInfo = Iterables.getOnlyElement(dependencyInfos);
+    }
+    return Pair.of(dependencyInfo, null);
   }
 
   protected final void generateGetProxyMethodIfNeeded(String packageString) {
@@ -718,7 +784,7 @@ abstract class GeneralInjectorGenerator {
     if (!fieldsGenerated.add(fieldName)) {
       return;
     }
-    FieldSpec.Builder fieldBuilder = FieldSpec.builder(typeName, fieldName, Modifier.PRIVATE);
+    FieldSpec.Builder fieldBuilder = FieldSpec.builder(getAccessibleTypeName(typeName), fieldName, Modifier.PRIVATE);
     if (initialize) {
       if (fmt.isEmpty()) {
         fieldBuilder.initializer("new $T()", typeName);
@@ -752,17 +818,18 @@ abstract class GeneralInjectorGenerator {
     // TypeSpec anonymousTypeSpec = createAnonymousBuiltinTypeForUniqueBinding(key);
     BindingKey elementKey = utils.getElementKeyForParameterizedBinding(key);
     generateProvisionMethodIfNeeded(elementKey);
+    TypeName returnTypeName = getAccessibleTypeName(key);
     MethodSpec.Builder methodSpecBuilder =
         MethodSpec.methodBuilder(getProvisionMethodName(key) + suffix)
             .addModifiers(suffix.isEmpty() ? Modifier.PUBLIC : Modifier.PRIVATE)
-            .returns(key.getTypeName());
+            .returns(returnTypeName);
 
     onProvisionMethodStart(methodSpecBuilder, key);
 
     // methodSpecBuilder.addStatement("$T result = $L", key.getTypeName(), anonymousTypeSpec);
     methodSpecBuilder.addStatement(
         "$T result = $T.create(()->$L())",
-        key.getTypeName(),
+        returnTypeName,
         ClassName.get(DoubleCheckLazyProvider.class),
         getProvisionMethodName(elementKey));
 
@@ -846,12 +913,13 @@ abstract class GeneralInjectorGenerator {
   }
 
   protected final void generateScopedProvisionMethod(Builder componentSpecBuilder, BindingKey key) {
+    TypeName returnTypeName = getAccessibleTypeName(key);
     MethodSpec.Builder builder =
         MethodSpec.methodBuilder(getProvisionMethodName(key))
-            .returns(key.getTypeName())
+            .returns(returnTypeName)
             .addModifiers(Modifier.PUBLIC);
     builder
-        .addStatement("$T result = $N", key.getTypeName().box(), getFieldName(key))
+        .addStatement("$T result = $N", returnTypeName.box(), getFieldName(key))
         .beginControlFlow("if (result == null)")
         .beginControlFlow("synchronized($L)", getLockFieldName(key))
         .addStatement("result = $N", getFieldName(key))
@@ -1061,7 +1129,7 @@ abstract class GeneralInjectorGenerator {
     MethodSpec.Builder methodSpecBuilder =
         MethodSpec.methodBuilder(methodName)
             .addModifiers(Modifier.PUBLIC)
-            .addParameter(ClassName.get(cls), "arg");
+            .addParameter(getAccessibleTypeName(ClassName.get(cls)), "arg");
     generateInjectionMethodBody(cls, methodSpecBuilder);
 
     injectorBuilder.addMethod(methodSpecBuilder.build());
@@ -1070,45 +1138,16 @@ abstract class GeneralInjectorGenerator {
   // TODO: move this to PackagedInjectorGenerator.
   protected void generateInjectionMethodBody(
       TypeElement cls, MethodSpec.Builder methodSpecBuilder) {
-    // Inject closest ancestor first.
-    TypeElement clsClosestInjectAncestor = utils.getClosestInjectedAncestor(cls);
-    if (clsClosestInjectAncestor != null) {
-      if (clsClosestInjectAncestor.getModifiers().contains(Modifier.PUBLIC)) {
-        String packageString = utils.getPackageString(cls);
-        ClassName hub = ClassName.get(packageString, PackagedHubInterfaceGenerator.HUB_INTERFACE);
-        methodSpecBuilder.addStatement(
-            "$L.inject(($T) arg)",
-            utils.getSourceCodeName(hub),
-            ClassName.get(clsClosestInjectAncestor));
-      } else {
-        methodSpecBuilder.addStatement("inject(($T) arg)", ClassName.get(clsClosestInjectAncestor));
-      }
+    Stack<TypeElement> stack = new Stack<>();
+    while (cls != null) {
+      stack.push(cls);
+      cls = utils.getClosestInjectedAncestor(cls);
     }
 
-    for (VariableElement field : utils.getInjectedFields(cls, processingEnv)) {
-      // logger.n("field: " + field);
-      TypeMirror fieldType = field.asType();
-      AnnotationMirror fieldQualifier = Utils.getQualifier(field);
-      BindingKey fieldKey = BindingKey.get(fieldType, fieldQualifier);
-      generateProvisionMethodIfNeeded(fieldKey);
-      StringBuilder stringBuilder =
-          new StringBuilder("arg.").append(field.getSimpleName()).append(" = ");
-      addCallingProvisionMethod(stringBuilder, fieldKey);
-      methodSpecBuilder.addStatement(stringBuilder.toString());
-    }
-
-    for (ExecutableElement method : utils.getInjectedMethods(cls, processingEnv)) {
-      StringBuilder builder = new StringBuilder("arg.").append(method.getSimpleName()).append("(");
-      List<BindingKey> methodArgs = utils.getDependenciesFromExecutableElement(method);
-      if (methodArgs.size() > 0) {
-        for (BindingKey dependentKey : methodArgs) {
-          addCallingProvisionMethod(builder, dependentKey);
-          builder.append(", ");
-        }
-        builder.delete(builder.length() - 2, builder.length());
-      }
-      builder.append(")");
-      methodSpecBuilder.addStatement(builder.toString());
+    while (!stack.empty()) {
+      cls = stack.pop();
+      methodSpecBuilder.addStatement(
+          generateStringCallingProxyInjectionMethod(TypeName.get(cls.asType()), "arg"));
     }
   }
 
@@ -1149,26 +1188,161 @@ abstract class GeneralInjectorGenerator {
 
     MethodSpec.Builder methodSpecBuilder =
         MethodSpec.methodBuilder(getProvisionMethodName(key) + suffix);
+    TypeName returnTypeName = getAccessibleTypeName(key);
     methodSpecBuilder
         .addModifiers(suffix.isEmpty() ? Modifier.PUBLIC : Modifier.PRIVATE)
-        .returns(key.getTypeName());
+        .returns(returnTypeName);
 
     onProvisionMethodStart(methodSpecBuilder, key);
 
-    methodSpecBuilder.addStatement("$T result", key.getTypeName());
+    methodSpecBuilder.addStatement("$T result", returnTypeName);
     addNewStatementToMethodSpec(
         methodSpecBuilder, Iterables.getOnlyElement(dependencies.get(key)), "result");
 
     if (shouldInjectAfterCreation() && !utils.isGenericNotSpecialized(cls.asType())
         && utils.hasInjectedFieldsOrMethodsRecursively(cls, processingEnv)) {
       // logger.n("hasInjected");
-      generateInjectionMethod(key);
-      methodSpecBuilder.addStatement("inject(result)");
+      generateInjectionMethod(utils.getClassFromKey(key), Utils.getInjectionMethodName(key));
+      methodSpecBuilder.addStatement("$L(result)", Utils.getInjectionMethodName(key));
     }
 
     methodSpecBuilder.addStatement("return result");
     onProvisionMethodEnd(methodSpecBuilder, key);
     injectorBuilder.addMethod(methodSpecBuilder.build());
+  }
+
+
+  protected final String generateStringCallingProxyProvisionMethod(DependencyInfo dependencyInfo) {
+    ExecutableElement provisionMethodElement = dependencyInfo.getProvisionMethodElement();
+    Preconditions.checkArgument(
+        provisionMethodElement == null || !utils.isAbstract(provisionMethodElement),
+        "Cannot handle abstract method: " + dependencyInfo);
+    boolean isModuleMethod =
+        dependencyInfo.getDependencySourceType().equals(DependencySourceType.MODULE);
+    boolean isCtorInjectedClass =
+        dependencyInfo.getDependencySourceType().equals(DependencySourceType.CTOR_INJECTED_CLASS);
+    Preconditions.checkArgument(
+        isModuleMethod || isCtorInjectedClass,
+        "unexpected DependencySourceType for: " + dependencyInfo);
+
+    TypeElement sourceClassElement = dependencyInfo.getSourceClassElement();
+    String packageString = utils.getPackageString(sourceClassElement);
+    StringBuilder builder = new StringBuilder();
+    builder.append(generateGetProxyMethodAndReturnCallingString(packageString)).append(".");
+    if (isModuleMethod) {
+      builder.append(utils.getMethodNameCallingMethod(sourceClassElement, provisionMethodElement));
+    } else {
+      builder.append(utils.getGetMethodName(sourceClassElement));
+    }
+    builder.append("(");
+    if (isModuleMethod && !utils.isStatic(provisionMethodElement)) {
+      if (nonNullaryCtorModules.contains(sourceClassElement)) {
+        builder.append(utils.getSourceCodeName(sourceClassElement));
+      } else {
+        generateGetTypeMethodIfNeeded(sourceClassElement);
+        builder.append(utils.getGetMethodName(sourceClassElement)).append("()");
+      }
+      builder.append(", ");
+    }
+    List<BindingKey> parameters =
+        isModuleMethod
+            ? utils.getDependenciesFromExecutableElement(provisionMethodElement)
+            : utils.getCtorDependencies(
+                dependencies, dependencyInfo.getDependant());
+    for (BindingKey dependentKey : parameters) {
+      generateProvisionMethodAndAppendAsParameter(dependentKey, builder);
+    }
+    if (builder.substring(builder.length() - 2).equals(", ")) {
+      builder.delete(builder.length() - 2, builder.length());
+    }
+    builder.append(")");
+
+    return builder.toString();
+  }
+
+  private String generateGetProxyMethodAndReturnCallingString(String packageString) {
+    ClassName proxyClassName = ClassName.get(packageString, TIGER_PROXY_NAME);
+    generateGetProxyMethodIfNeeded(packageString);
+    return utils.getGetMethodName(proxyClassName) + "()";
+  }
+
+  protected final String generateStringCallingProxyInjectionMethod(TypeName typeName, String target) {
+    typeName = utils.getClassName(typeName);
+    StringBuilder builder =
+        new StringBuilder();
+    builder
+        .append(
+            generateGetProxyMethodAndReturnCallingString(
+                utils.getPackageString(utils.getTypeElement(typeName))))
+        .append(".")
+        .append(Utils.getInjectionMethodName(BindingKey.get(typeName)))
+        .append("(")
+        .append(target)
+        .append(", ");
+    // target
+    TypeName targetTypeName = utils.isPublicRecurively(typeName) ? typeName : objectClassName;
+
+
+    TypeElement c = utils.getTypeElement(typeName);
+    // fields
+    for (VariableElement field : utils.getSortedInjectedFields(c, processingEnv)) {
+      BindingKey key = BindingKey.get(field.asType(), Utils.getQualifier(field));
+      generateProvisionMethodAndAppendAsParameter(key, builder);
+    }
+
+    // methods
+    for (ExecutableElement method : utils.getSortedInjectedMethods(c, processingEnv)) {
+      for (VariableElement injectedMethodParameter : method.getParameters()) {
+        BindingKey key =
+            BindingKey.get(
+                injectedMethodParameter.asType(), Utils.getQualifier(injectedMethodParameter));
+        generateProvisionMethodAndAppendAsParameter(key, builder);
+      }
+    }
+
+    builder.delete(builder.length() - 2, builder.length());
+    builder.append(")");
+
+    return builder.toString();
+  }
+
+  protected final String generateStringCallingProxySetFieldMethod(
+      TypeElement cls, String clsName, VariableElement field, String fieldName) {
+    String packageString = utils.getPackageString(cls);
+    ClassName proxyClassName = ClassName.get(packageString, TIGER_PROXY_NAME);
+    generateGetProxyMethodIfNeeded(packageString);
+    StringBuilder builder = new StringBuilder();
+    builder
+        .append(utils.getGetMethodName(proxyClassName))
+        .append("().")
+        .append(utils.getMethodNameSettingField(cls, field))
+        .append("(")
+        .append(clsName)
+        .append(", ")
+        .append(fieldName)
+        .append(")");
+
+    return builder.toString();
+  }
+
+  protected final String generateStringCallingProxyInjectedMethod(
+      TypeElement cls, String clsName, ExecutableElement method, String... parameterNames) {
+    String packageString = utils.getPackageString(cls);
+    ClassName proxyClassName = ClassName.get(packageString, TIGER_PROXY_NAME);
+    generateGetProxyMethodIfNeeded(packageString);
+    StringBuilder builder = new StringBuilder();
+    builder
+        .append(utils.getGetMethodName(proxyClassName))
+        .append("().")
+        .append(utils.getMethodNameCallingMethod(cls, method))
+        .append("(")
+        .append(clsName);
+    for (String parameterName : parameterNames) {
+      builder.append(", ").append(parameterName);
+    }
+    builder.append(")");
+
+    return builder.toString();
   }
 
   /**

@@ -41,7 +41,9 @@ public class ExtraDependenciesOnParentCalculator {
       ProcessingEnvironment processingEnvironment,
       Utils utils) {
     if (instance == null) {
-      instance = new ExtraDependenciesOnParentCalculator(eitherComponentToParentMap, processingEnvironment, utils);
+      instance =
+          new ExtraDependenciesOnParentCalculator(
+              eitherComponentToParentMap, processingEnvironment, utils);
       instance.initialize(eitherComponentToParentMap);
     } else {
     }
@@ -92,36 +94,36 @@ public class ExtraDependenciesOnParentCalculator {
       fromChildrenAndPackages.addAll(calculate(child, eitherComponent));
     }
 
-    for (TypeName i : utils.collectPackagedHubInterfaces(eitherComponent, dependencies)) {
-      TypeElement typeElement = utils.getTypeElementForClassName((ClassName) i);
-      if (typeElement == null) {
-        logger.e("package not found: %s", i);
-        continue;
-      }
-      logKey(eitherComponent, "package: %s", i);
-      for (Element e : typeElement.getEnclosedElements()) {
-        ExecutableElement method = (ExecutableElement) e;
-        // logger.n("component: %s, method: %s", eitherComponent, method);
-        BindingKey key;
-        if (utils.isProvisionMethodInInjector(method)) {
-          key = utils.getKeyProvidedByMethod(method);
-          logKey(eitherComponent, "key:%s, method: %s", key, method);
-          if ((key.getQualifier() == null
-                  || utils
-                      .getTypeElement(key.getQualifier().type)
-                      .getModifiers()
-                      .contains(Modifier.PUBLIC))
-              && utils.isPublicRecurively(key.getTypeName())) {
-            fromChildrenAndPackages.add(key);
-          }
-        } else {
-          Preconditions.checkState(utils.isInjectionMethod(method));
-          // key =
-          //     utils.getKeyForOnlyParameterOfMethod(
-          //         types, (DeclaredType) utils.getTypeFromTypeName(i), method);
-        }
-      }
-    }
+    // for (TypeName i : utils.collectPackagedHubInterfaces(eitherComponent, dependencies)) {
+    //   TypeElement typeElement = utils.getTypeElementForClassName((ClassName) i);
+    //   if (typeElement == null) {
+    //     logger.e("package not found: %s", i);
+    //     continue;
+    //   }
+    //   logKey(eitherComponent, "package: %s", i);
+    //   for (Element e : typeElement.getEnclosedElements()) {
+    //     ExecutableElement method = (ExecutableElement) e;
+    //     // logger.n("component: %s, method: %s", eitherComponent, method);
+    //     BindingKey key;
+    //     if (utils.isProvisionMethodInInjector(method)) {
+    //       key = utils.getKeyProvidedByMethod(method);
+    //       logKey(eitherComponent, "key:%s, method: %s", key, method);
+    //       if ((key.getQualifier() == null
+    //               || utils
+    //                   .getTypeElement(key.getQualifier().type)
+    //                   .getModifiers()
+    //                   .contains(Modifier.PUBLIC))
+    //           && utils.isPublicRecurively(key.getTypeName())) {
+    //         fromChildrenAndPackages.add(key);
+    //       }
+    //     } else {
+    //       Preconditions.checkState(utils.isInjectionMethod(method));
+    //       // key =
+    //       //     utils.getKeyForOnlyParameterOfMethod(
+    //       //         types, (DeclaredType) utils.getTypeFromTypeName(i), method);
+    //     }
+    //   }
+    // }
 
     for (BindingKey k : fromChildrenAndPackages) {
       Set<DependencyInfo> dependencyInfos = utils.getDependencyInfo(dependencies, k);
